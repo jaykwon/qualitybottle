@@ -18,15 +18,20 @@ MIN_MAX_YELLOW = 50
 def server_static(filename):
     return static_file(filename, os.path.abspath(STAGING_DIR))
 
-def get_minutia(original):
+def get_minutia(original, contrast_boost):
+    print "Contrast Boost: ", contrast_boost
+    command = ['mindtct', '-m1', original, MINSTAGE]
+    if contrast_boost == 'boost':
+        command.insert(2, '-b')
+    print command
     try:
-        subprocess.check_output(['mindtct', '-m1', original, MINSTAGE])
+        subprocess.check_output(command)
         return True
     except subprocess.CalledProcessError:
         return False
         
-def create_minutia_image(filename, min_qual):
-    if not get_minutia(filename):
+def create_minutia_image(filename, min_qual, contrast_boost):
+    if not get_minutia(filename, contrast_boost):
         print "Could not create minutia image for %s" % (filename)
         return None
     base = os.path.splitext(filename)[0]
@@ -55,17 +60,19 @@ def create_minutia_image(filename, min_qual):
 @route('/upload')
 def upload():
     return '''
-        <form action="/upload" method="post" enctype="multipart/form-data">
-          Select a file:    <input type="file" name="data" />
-          Min Quality:      <input type="text" name="min_qual" />
-          <input type="submit" value="Start upload" />
-        </form>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+      Select a file:    <input type="file" name="data" />
+      Min Quality:      <input type="text" name="min_qual" size="5" />
+      Contrast Enhance: <input type="checkbox" name="contrast" value="boost" />
+      <input type="submit" value="Start upload" />
+    </form>
     '''
 
 @route('/upload', method='POST')
 def do_upload():
     min_qual = request.forms.min_qual
     data = request.files.data
+    contrast = request.forms.contrast
     if min_qual and data and data.file:
         raw = data.file.read()
         filename = data.filename
@@ -75,7 +82,8 @@ def do_upload():
             file_to_save.write(raw)
         file_to_save.close()
         nfiq_score = subprocess.check_output(['nfiq'] + [filepath]).strip()
-        min_total, min_omit = create_minutia_image(filepath, int(min_qual))
+        min_total, min_omit = create_minutia_image(filepath, int(min_qual), 
+                                                   contrast)
         return '''
         <html>       
           <h3>You uploaded %s (%d bytes).</h3>
@@ -83,9 +91,10 @@ def do_upload():
           <h4><i>Image created with minutia quality threshold of %s.</i></h4>
           <h3>Total Minutia: %s    Omitted Minutia: %s</h3>
           <h3>NFIQ: %s</h3>
+          <h5>Contrast: %s</h5>
         </html>
         ''' % (filename, len(raw), './static/' + base + '_pil.jpg',
-               min_qual, min_total, min_omit, nfiq_score)
+               min_qual, min_total, min_omit, nfiq_score, contrast)
     return "You missed a field."
     
 run(host='localhost', port=5000, debug=True)
