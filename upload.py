@@ -3,6 +3,8 @@ import os
 import subprocess
 from pprint import pprint
 import Image, ImageDraw
+#from jinja2 import Environment, PackageLoader
+#env = Environment(loader=PackageLoader(__name__, 'templates')
 
 STAGING_DIR = './stage'
 MINSTAGE = 'minstage/image'
@@ -21,7 +23,7 @@ def server_static(filename):
 def get_minutia(original, contrast_boost):
     print "Contrast Boost: ", contrast_boost
     command = ['mindtct', '-m1', original, MINSTAGE]
-    if contrast_boost == 'boost':
+    if contrast_boost:
         command.insert(2, '-b')
     print command
     try:
@@ -63,7 +65,7 @@ def upload():
     <form action="/upload" method="post" enctype="multipart/form-data">
       Select a file:    <input type="file" name="data" />
       Min Quality:      <input type="text" name="min_qual" size="5" />
-      Contrast Enhance: <input type="checkbox" name="contrast" value="boost" />
+      Contrast Enhance: <input type="checkbox" name="contrast" value="True" />
       <input type="submit" value="Start upload" />
     </form>
     '''
@@ -72,7 +74,7 @@ def upload():
 def do_upload():
     min_qual = request.forms.min_qual
     data = request.files.data
-    contrast = request.forms.contrast
+    contrast = bool(request.forms.contrast)
     if min_qual and data and data.file:
         raw = data.file.read()
         filename = data.filename
@@ -88,13 +90,13 @@ def do_upload():
         <html>       
           <h3>You uploaded %s (%d bytes).</h3>
           <img src="%s" />
+          <h4><i>Contrast Enhancement (if necessary): %s</i></h4>
           <h4><i>Image created with minutia quality threshold of %s.</i></h4>
-          <h3>Total Minutia: %s    Omitted Minutia: %s</h3>
+          <h3>Total Minutia: %s  Omitted Minutia: %s</h3>
           <h3>NFIQ: %s</h3>
-          <h5>Contrast: %s</h5>
         </html>
         ''' % (filename, len(raw), './static/' + base + '_pil.jpg',
-               min_qual, min_total, min_omit, nfiq_score, contrast)
+               contrast, min_qual, min_total, min_omit, nfiq_score)
     return "You missed a field."
     
 run(host='localhost', port=5000, debug=True)
