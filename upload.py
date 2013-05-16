@@ -2,9 +2,10 @@ from bottle import route, request, run, static_file
 import os
 import subprocess
 from pprint import pprint
-import Image, ImageDraw
-#from jinja2 import Environment, PackageLoader
-#env = Environment(loader=PackageLoader(__name__, 'templates')
+import Image, ImageDraw, ImageEnhance
+import math
+from jinja2 import Environment, PackageLoader
+env = Environment(loader=PackageLoader(__name__, 'templates'))
 
 STAGING_DIR = './stage'
 MINSTAGE = 'minstage/image'
@@ -15,6 +16,8 @@ YELLOW = "#ffff00"
 RED = "#ff0000"
 MIN_MAX_RED = 25
 MIN_MAX_YELLOW = 50
+DEGREE_SLICE = 11.25
+MIN_LINE_LENGTH = MIN_RADIUS * 4
 
 @route('/static/<filename>')
 def server_static(filename):
@@ -38,13 +41,29 @@ def create_minutia_image(filename, min_qual, contrast_boost):
         return None
     base = os.path.splitext(filename)[0]
     xyt = open(MINSTAGE + '.xyt', 'r')
+    mn = open(MINSTAGE + '.min', 'r')
+    for idx, line in enumerate(mn):
+        if idx == 3:
+            break
     img = Image.open(filename)
     img = img.convert("RGBA")
+    if contrast_boost:
+        enhancer = ImageEnhance.Contrast(img)
+        img = enhancer.enhance(1.75)
+        del enhancer
     draw = ImageDraw.Draw(img)
     min_omit = 0
-    for index, line in enumerate(xyt):
-        vals = line.rstrip().split(' ')
-        x, y, theta, quality = [int(val) for val in vals]
+    print "Start_X Start_Y End_X End_Y Angle(d) Angle(NIST) Rads"
+    for index, (xyt_line, min_line) in enumerate(zip(xyt, mn)):
+        xyt_vals = xyt_line.rstrip().split(' ')
+        min_vals = min_line.strip().replace(' ', '').split(':')
+        assert int(min_vals[0]) == index, \
+            'Zipped lists out of sync: %r, %r' % (int(min_vals[0]), index)
+        x, y, theta, quality = [int(val) for val in xyt_vals]
+        min_direction = float(min_vals[2]) * DEGREE_SLICE
+        min_type = min_vals[4]
+        assert min_type in ('BIF', 'RIG'), \
+            'Min_Type not in tuple: %r' % (min_type)
         if quality < min_qual:
             min_omit += 1
             continue
@@ -54,10 +73,23 @@ def create_minutia_image(filename, min_qual, contrast_boost):
             color = YELLOW
         else:
             color = GREEN
-        draw.ellipse((x-r, y-r, x+r, y+r), outline=color)
+        if min_type == 'RIG':
+            draw.ellipse((x-r, y-r, x+r, y+r), outline=color)
+        elif min_type == 'BIF':
+            draw.rectangle([x-r, y-r, x+r, y+r], outline=color)
+        min_direction = 90 - min_direction
+        min_direction_rads = (min_direction * math.pi) / 180
+        end_x = x + MIN_LINE_LENGTH * math.cos(min_direction_rads)
+        end_y = y - MIN_LINE_LENGTH * math.sin(min_direction_rads)
+        draw.line((x, y, round(end_x), round(end_y)), fill=color, width=1)
+        #print x, y, round(end_x), round(end_y), min_direction, min_vals[2], \
+        #    min_direction_rads, math.cos(min_direction_rads), \
+        #    math.sin(min_direction_rads), math.cos(45), math.sin(45), \
+        #    math.cos(math.pi / 4), math.sin(math.pi / 4)
     del draw
+    xyt.close()
     img.save(os.path.join(base + "_pil.jpg"), "JPEG")
-    return (index, min_omit)
+    return (index + 1, min_omit)
 
 @route('/upload')
 def upload():
