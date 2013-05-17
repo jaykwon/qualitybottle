@@ -6,23 +6,48 @@
     td {
       padding: 10px;
     }
+    .rows {
+      display: inline-block;
+      vertical-align: middle;
+      float: middle;
+    }
+    .col {
+      text-align: center;
+      padding: 3px;
+    }
+    input {
+      text-align: center;
+    }
     </style>
   </head>
-  <body> 
+  <body>
+    <div class="rows">
     <form action="/upload" method="post" enctype="multipart/form-data">
-      <table>
-      <tr><td>Select a file:</td><td><input type="file" name="data" size="50" /></td></tr>
-      <tr><td>Min Quality:</td><td><input type="text" name="min_qual" size="5" /></td></tr>
-      <tr><td>Contrast Enhance:</td><td>
-      <div class="toggle">
-        <label class="toggle-radio" for="contrast_off">ON</label>
-        <input type="radio" name="contrast" id="contrast_on" value="1" checked="checked">
-        <label class="toggle-radio" for="contrast_on">OFF</label>
-        <input type="radio" name="contrast" id="contrast_off" value="0">
-      </div></td></tr>
-      </table>
+      <div class="row">
+        <div class="col">Select a file: </div>
+        <div class="col"><input type="file" name="data" size="50" /></div><br />
+      </div>
+      <div class="row">
+        <div class="col">Min Quality: </div>
+        <div class="col"><input type="text" name="min_qual" /></div><br />
+      </div>
+      <div class="row">
+        <div class="col">Contrast Enhance:</div>
+        <div class="col">
+          <div class="toggle">
+            <label class="toggle-radio" for="contrast_off">ON</label>
+            <input type="radio" name="contrast" id="contrast_on" value="1" checked="checked">
+            <label class="toggle-radio" for="contrast_on">OFF</label>
+            <input type="radio" name="contrast" id="contrast_off" value="0">
+          </div>
+        </div>
+      </div>
+      </div>
       <br />
-      <input class="btn btn-large btn-block" type="submit" value="Start Upload" />
+      <div class="bottom">
+        <input class="btn btn-large btn-block" type="submit" value="Start Upload" />
+      </div>
+      </div>
     </form>
     
     <script src="/static/js/jquery-1.8.2.min.js"></script>

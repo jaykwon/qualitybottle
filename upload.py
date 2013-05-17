@@ -21,33 +21,9 @@ MIN_MAX_YELLOW = 50
 DEGREE_SLICE = 11.25
 MIN_LINE_LENGTH = MIN_RADIUS * 4
 
-@route('/static/<filename>')
+@route('/static/<filename:path>')
 def server_static(filename):
     return static_file(filename, os.path.abspath(STAGING_DIR))
-    
-@route('/static/output/<filename>')
-def output_static(filename):
-    return static_file(filename, os.path.abspath(STAGING_DIR + '/output'))
-    
-@route('/static/input/<filename>')
-def input_static(filename):
-    return static_file(filename, os.path.abspath(STAGING_DIR + '/input'))
-    
-@route('/static/css/<filename>')
-def css_static(filename):
-    return static_file(filename, os.path.abspath(STAGING_DIR + '/css/'))
-    
-@route('/static/js/<filename>')
-def js_static(filename):
-    return static_file(filename, os.path.abspath(STAGING_DIR + '/js/'))
-    
-@route('/static/sass/<filename>')
-def sass_static(filename):
-    return static_file(filename, os.path.abspath(STAGING_DIR + '/sass/'))
-    
-@route('/static/images/toggle/<filename>')
-def image_static(filename):
-    return static_file(filename, os.path.abspath(STAGING_DIR + '/images/toggle/'))
 
 def get_minutia(original, contrast_boost, ident):
     print "Contrast Boost: ", contrast_boost
