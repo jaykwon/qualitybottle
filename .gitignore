@@ -37,3 +37,8 @@ nosetests.xml
 # Images
 stage/input/*
 stage/output/*
+minres/*
+minstage/*
+
+# Dev
+venv/
