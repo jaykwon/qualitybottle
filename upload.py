@@ -4,11 +4,13 @@ import subprocess
 from pprint import pprint
 import Image, ImageDraw, ImageEnhance
 import math
+from uuid import uuid4
 from jinja2 import Environment, PackageLoader
 env = Environment(loader=PackageLoader(__name__, 'templates'))
 
 STAGING_DIR = './stage'
-MINSTAGE = 'minstage/image'
+OUTPUT_DIR = STAGING_DIR + '/output'
+MINSTAGE = 'minstage/'
 MIN_RADIUS = r = 4
 #MIN_QUALITY_THRESHOLD = 5
 GREEN = "#00ff00"
@@ -23,6 +25,10 @@ MIN_LINE_LENGTH = MIN_RADIUS * 4
 def server_static(filename):
     return static_file(filename, os.path.abspath(STAGING_DIR))
     
+@route('/static/output/<filename>')
+def output_static(filename):
+    return static_file(filename, os.path.abspath(STAGING_DIR + '/output'))
+    
 @route('/static/css/<filename>')
 def css_static(filename):
     return static_file(filename, os.path.abspath(STAGING_DIR + '/css/'))
@@ -35,9 +41,9 @@ def js_static(filename):
 def image_static(filename):
     return static_file(filename, os.path.abspath(STAGING_DIR + '/images/toggle/'))
 
-def get_minutia(original, contrast_boost):
+def get_minutia(original, contrast_boost, ident):
     print "Contrast Boost: ", contrast_boost
-    command = ['mindtct', '-m1', original, MINSTAGE]
+    command = ['mindtct', '-m1', original, MINSTAGE + ident]
     if contrast_boost:
         command.insert(2, '-b')
     print command
@@ -47,13 +53,13 @@ def get_minutia(original, contrast_boost):
     except subprocess.CalledProcessError:
         return False
         
-def create_minutia_image(filename, min_qual, contrast_boost):
-    if not get_minutia(filename, contrast_boost):
+def create_minutia_image(filename, min_qual, contrast_boost, ident):
+    if not get_minutia(filename, contrast_boost, ident):
         print "Could not create minutia image for %s" % (filename)
         return None
     base = os.path.splitext(filename)[0]
-    xyt = open(MINSTAGE + '.xyt', 'r')
-    mn = open(MINSTAGE + '.min', 'r')
+    xyt = open(MINSTAGE + ident + '.xyt', 'r')
+    mn = open(MINSTAGE + ident + '.min', 'r')
     for idx, line in enumerate(mn):
         if idx == 3:
             break
@@ -100,7 +106,7 @@ def create_minutia_image(filename, min_qual, contrast_boost):
         #    math.cos(math.pi / 4), math.sin(math.pi / 4)
     del draw
     xyt.close()
-    img.save(os.path.join(base + "_pil.jpg"), "JPEG")
+    img.save(os.path.join(STAGING_DIR, ident + '.jpg'), 'JPEG')
     return (index + 1, min_omit)
 
 @route('/upload')
@@ -110,6 +116,7 @@ def upload():
 
 @route('/upload', method='POST')
 def do_upload():
+    ident = str(uuid4())
     min_qual = request.forms.min_qual
     data = request.files.data
     contrast = bool(int(request.forms.contrast))
@@ -125,9 +132,9 @@ def do_upload():
         file_to_save.close()
         nfiq_score = subprocess.check_output(['nfiq'] + [filepath]).strip()
         min_total, min_omit = create_minutia_image(filepath, int(min_qual), 
-                                                   contrast)
+                                                   contrast, ident)
         template_info = dict([('filename', filename), ('bytes', len(raw)), 
-                             ('image_path', './static/' + base + '_pil.jpg'),
+                             ('image_path', './static/' + ident + '.jpg'),
                              ('contrast', contrast), ('min_qual', min_qual),
                              ('min_total', min_total), ('min_omit', min_omit),
                              ('nfiq', nfiq_score)])
