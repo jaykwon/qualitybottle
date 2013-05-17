@@ -29,6 +29,10 @@ def server_static(filename):
 def output_static(filename):
     return static_file(filename, os.path.abspath(STAGING_DIR + '/output'))
     
+@route('/static/input/<filename>')
+def input_static(filename):
+    return static_file(filename, os.path.abspath(STAGING_DIR + '/input'))
+    
 @route('/static/css/<filename>')
 def css_static(filename):
     return static_file(filename, os.path.abspath(STAGING_DIR + '/css/'))
@@ -106,7 +110,7 @@ def create_minutia_image(filename, min_qual, contrast_boost, ident):
         #    math.cos(math.pi / 4), math.sin(math.pi / 4)
     del draw
     xyt.close()
-    img.save(os.path.join(STAGING_DIR, ident + '.jpg'), 'JPEG')
+    img.save(os.path.join(STAGING_DIR + '/output/', ident + '.jpg'), 'JPEG')
     return (index + 1, min_omit)
 
 @route('/upload')
@@ -125,7 +129,7 @@ def do_upload():
     if min_qual and data and data.file:
         raw = data.file.read()
         filename = data.filename
-        filepath = os.path.join(STAGING_DIR, filename)
+        filepath = os.path.join(STAGING_DIR + '/input/', filename)
         base, ext = os.path.splitext(filename)
         with open(filepath, 'w') as file_to_save:
             file_to_save.write(raw)
@@ -134,7 +138,7 @@ def do_upload():
         min_total, min_omit = create_minutia_image(filepath, int(min_qual), 
                                                    contrast, ident)
         template_info = dict([('filename', filename), ('bytes', len(raw)), 
-                             ('image_path', './static/' + ident + '.jpg'),
+                             ('image_path', './static/output/' + ident + '.jpg'),
                              ('contrast', contrast), ('min_qual', min_qual),
                              ('min_total', min_total), ('min_omit', min_omit),
                              ('nfiq', nfiq_score)])
