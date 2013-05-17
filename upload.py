@@ -22,6 +22,18 @@ MIN_LINE_LENGTH = MIN_RADIUS * 4
 @route('/static/<filename>')
 def server_static(filename):
     return static_file(filename, os.path.abspath(STAGING_DIR))
+    
+@route('/static/css/<filename>')
+def css_static(filename):
+    return static_file(filename, os.path.abspath(STAGING_DIR + '/css/'))
+    
+@route('/static/js/<filename>')
+def js_static(filename):
+    return static_file(filename, os.path.abspath(STAGING_DIR + '/js/'))
+    
+@route('/static/images/toggle/<filename>')
+def image_static(filename):
+    return static_file(filename, os.path.abspath(STAGING_DIR + '/images/toggle/'))
 
 def get_minutia(original, contrast_boost):
     print "Contrast Boost: ", contrast_boost
@@ -53,7 +65,7 @@ def create_minutia_image(filename, min_qual, contrast_boost):
         del enhancer
     draw = ImageDraw.Draw(img)
     min_omit = 0
-    print "Start_X Start_Y End_X End_Y Angle(d) Angle(NIST) Rads"
+    #print "Start_X Start_Y End_X End_Y Angle(d) Angle(NIST) Rads"
     for index, (xyt_line, min_line) in enumerate(zip(xyt, mn)):
         xyt_vals = xyt_line.rstrip().split(' ')
         min_vals = min_line.strip().replace(' ', '').split(':')
@@ -81,7 +93,7 @@ def create_minutia_image(filename, min_qual, contrast_boost):
         min_direction_rads = (min_direction * math.pi) / 180
         end_x = x + MIN_LINE_LENGTH * math.cos(min_direction_rads)
         end_y = y - MIN_LINE_LENGTH * math.sin(min_direction_rads)
-        draw.line((x, y, round(end_x), round(end_y)), fill=color, width=1)
+        draw.line((x, y, round(end_x), round(end_y)), fill=color, width=2)
         #print x, y, round(end_x), round(end_y), min_direction, min_vals[2], \
         #    min_direction_rads, math.cos(min_direction_rads), \
         #    math.sin(min_direction_rads), math.cos(45), math.sin(45), \
@@ -93,20 +105,16 @@ def create_minutia_image(filename, min_qual, contrast_boost):
 
 @route('/upload')
 def upload():
-    return '''
-    <form action="/upload" method="post" enctype="multipart/form-data">
-      Select a file:    <input type="file" name="data" />
-      Min Quality:      <input type="text" name="min_qual" size="5" />
-      Contrast Enhance: <input type="checkbox" name="contrast" value="True" />
-      <input type="submit" value="Start upload" />
-    </form>
-    '''
+    template = env.get_template('upload_form.html')
+    return template.render()
 
 @route('/upload', method='POST')
 def do_upload():
     min_qual = request.forms.min_qual
     data = request.files.data
-    contrast = bool(request.forms.contrast)
+    contrast = bool(int(request.forms.contrast))
+    print "Raw Contrast: ", request.forms.contrast
+    print "Contrast: ", contrast
     if min_qual and data and data.file:
         raw = data.file.read()
         filename = data.filename
@@ -118,17 +126,13 @@ def do_upload():
         nfiq_score = subprocess.check_output(['nfiq'] + [filepath]).strip()
         min_total, min_omit = create_minutia_image(filepath, int(min_qual), 
                                                    contrast)
-        return '''
-        <html>       
-          <h3>You uploaded %s (%d bytes).</h3>
-          <img src="%s" />
-          <h4><i>Contrast Enhancement (if necessary): %s</i></h4>
-          <h4><i>Image created with minutia quality threshold of %s.</i></h4>
-          <h3>Total Minutia: %s  Omitted Minutia: %s</h3>
-          <h3>NFIQ: %s</h3>
-        </html>
-        ''' % (filename, len(raw), './static/' + base + '_pil.jpg',
-               contrast, min_qual, min_total, min_omit, nfiq_score)
+        template_info = dict([('filename', filename), ('bytes', len(raw)), 
+                             ('image_path', './static/' + base + '_pil.jpg'),
+                             ('contrast', contrast), ('min_qual', min_qual),
+                             ('min_total', min_total), ('min_omit', min_omit),
+                             ('nfiq', nfiq_score)])
+        template = env.get_template('upload_result.html')
+        return template.render(template_info)
     return "You missed a field."
     
-run(host='localhost', port=5000, debug=True)
+run(host='192.168.2.101', port=5000, debug=True)

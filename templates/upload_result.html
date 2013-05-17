@@ -1,0 +1,14 @@
+<html>
+  <head>
+    <title>Upload Result</title>
+    <link rel="stylesheet" href="/static/css/flat-ui.css" />
+  </head>
+  <body>       
+    <h3>You uploaded {{ filename }} ({{ bytes }} bytes).</h3>
+    <img src="{{ image_path }}" /><br />
+    <i>Contrast Enhancement (if necessary): {{ contrast }}</i><br />
+    <i>Image created with minutia quality threshold of {{ min_qual }}.</i><br />
+    <h3>Total Minutia: {{ min_total }}  Omitted Minutia: {{ min_omit }}</h3>
+    <h3>NFIQ: {{ nfiq }}</h3>
+  </body>
+</html>
