@@ -41,6 +41,10 @@ def css_static(filename):
 def js_static(filename):
     return static_file(filename, os.path.abspath(STAGING_DIR + '/js/'))
     
+@route('/static/sass/<filename>')
+def sass_static(filename):
+    return static_file(filename, os.path.abspath(STAGING_DIR + '/sass/'))
+    
 @route('/static/images/toggle/<filename>')
 def image_static(filename):
     return static_file(filename, os.path.abspath(STAGING_DIR + '/images/toggle/'))
